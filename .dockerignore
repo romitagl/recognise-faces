@@ -1,0 +1,6 @@
+**/*.md
+.vscode
+.git
+.github
+datasets/
+output/

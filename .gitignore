@@ -1,0 +1,8 @@
+*.json
+*.jpg
+*.npy
+*.dat
+output/
+predictions/
+**/.DS_Store
+*.joblib

@@ -1,0 +1,7 @@
+numpy
+opencv-python-headless
+dlib
+face_recognition
+scikit-learn
+Pillow
+Flask
