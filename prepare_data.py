@@ -119,14 +119,15 @@ def process_image(json_file, images_dir, annotations_dir, output_dir):
 
         try:
             # Detect face locations in the cropped face image
+            # number_of_times_to_upsample – How many times to upsample the image looking for faces. Higher numbers find smaller faces.
             face_locations = face_recognition.face_locations(
-                face_image_rgb, model="cnn"
+                face_image_rgb, model="cnn", number_of_times_to_upsample=2
             )
 
             # If no faces are detected, try the hog model
             if not face_locations:
                 face_locations = face_recognition.face_locations(
-                    face_image_rgb, model="hog"
+                    face_image_rgb, model="hog", number_of_times_to_upsample=2
                 )
 
             if face_locations:
@@ -187,9 +188,9 @@ def prepare_data(data_dir, output_dir):
         output_dir=output_dir,
     )
 
-    # Determine the number of CPU cores to use
-    num_cores = multiprocessing.cpu_count() - 1  # Leave one core free
-    num_cores = max(1, num_cores)  # Ensure at least one core is used
+    # Determine the number of CPU cores to use, divide by 2 and round down to the lowest integer
+    num_cores = (multiprocessing.cpu_count() // 2)
+    num_cores = 2 # max(1, num_cores)  # Ensure at least one core is used
 
     logging.info(f"Using {num_cores} CPU cores")
 

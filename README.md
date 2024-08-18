@@ -203,16 +203,12 @@ Use the script (e.g., train_model.py) to train a simple classifier.
 
 The classification report printed at the end of the training script will give you an idea of the model's performance. You can also create a separate evaluation script if needed.
 
-### Step 6: Dockerization
+### Step 6: Serving the Model
 
-Use the Dockerfile in your project directory.
-
-### Step 7: Serving the Model
-
-Use the script (e.g., serve_model.py) to serve your model.
+Use the script (e.g., serve_model.py) to serve your model: `python serve_model.py`.
 
 Now you can submit new images to <http://localhost:5555/predict> for prediction. Example using ./img1.jpg: `curl -X POST -F "image=@img1.jpg" http://localhost:5555/predict`.
 
 Note: The -F option allows you to send form data, which is what Flask expects for file uploads.
 
-You can also use the test_model.py script to test your model: `python test_model.py path/to/your/image.jpg`
+You can also use the test_model.py script to test your model: `python test_model.py path/to/your/image.jpg`.
