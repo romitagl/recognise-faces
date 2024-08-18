@@ -11,8 +11,7 @@ A machine learning model is trained using the custom dataset to recognise Person
 3. Face Detection and Feature Extraction
 4. Model Training
 5. Model Evaluation
-6. Dockerization
-7. Serving the Model
+6. Serving the Model
 
 ### Step 1: Dataset Preparation and Labeling
 
