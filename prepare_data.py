@@ -189,8 +189,8 @@ def prepare_data(data_dir, output_dir):
     )
 
     # Determine the number of CPU cores to use, divide by 2 and round down to the lowest integer
-    num_cores = (multiprocessing.cpu_count() // 2)
-    num_cores = 2 # max(1, num_cores)  # Ensure at least one core is used
+    num_cores = multiprocessing.cpu_count() // 2
+    num_cores = 2  # max(1, num_cores)  # Ensure at least one core is used
 
     logging.info(f"Using {num_cores} CPU cores")
 
@@ -239,6 +239,9 @@ def main():
 
     if X is not None:
         # Save the prepared data
+        # X: the face features (encodings)
+        # y: the corresponding labels
+        # le.classes_: the classes from the LabelEncoder
         np.save("face_features.npy", X)
         np.save("face_labels.npy", y)
         np.save("label_encoder.npy", le.classes_)

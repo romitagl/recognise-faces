@@ -26,14 +26,16 @@ print("Class distribution:", class_distribution)
 
 # Stratified Train-Test Split
 if len(X) > 1:
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 else:
     print("Not enough samples to split. Using all data for training.")
     X_train, y_train = X, y
     X_test, y_test = X, y
 
 
-# Train the model
+# Train the classifier model
 clf = SVC(kernel="linear", probability=True)
 clf.fit(X_train, y_train)
 
@@ -46,21 +48,25 @@ y_pred = clf.predict(X_test)
 # Print classification report with original labels
 # Use zero_division Parameter
 # When printing the classification report, you can set the zero_division parameter to control how to handle cases where a label has no true samples. Setting it to 0 will replace undefined metrics with 0.
-print(classification_report(le.inverse_transform(y_test), le.inverse_transform(y_pred), zero_division=0))
+print(
+    classification_report(
+        le.inverse_transform(y_test), le.inverse_transform(y_pred), zero_division=0
+    )
+)
 
 # Save the LabelEncoder with the model for future use
 joblib.dump(le, "label_encoder.joblib")
 
 
 ### Output analysis
-# python train_model.py 
+# python train_model.py
 # X shape: (53, 128)
 # y shape: (53,)
 # Class distribution: {0: 17, 1: 19, 2: 17}
-#               precision    recall  f1-score   support
+#                 precision    recall  f1-score   support
 
-#         Person_A       1.00      0.75      0.86         4
-#        Person_B       0.75      0.75      0.75         4
+#      Person_A       1.00      0.75      0.86         4
+#      Person_B       0.75      0.75      0.75         4
 #      Unknown       0.75      1.00      0.86         3
 
 #     accuracy                           0.82        11

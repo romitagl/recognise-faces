@@ -1,14 +1,34 @@
-import face_recognition
 import numpy as np
 import joblib
 from flask import Flask, request, jsonify
 import cv2
+import dlib
 
 app = Flask(__name__)
 
 # Load the trained model and label encoder
+# clf: a trained classifier model
+# le: the LabelEncoder object
 clf = joblib.load("face_recognition_model.joblib")
-le = joblib.load("label_encoder.joblib")  # Load the LabelEncoder properly
+le = joblib.load("label_encoder.joblib")
+
+# Load dlib's face detector and shape predictor
+face_detector = dlib.get_frontal_face_detector()
+shape_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+face_rec_model = dlib.face_recognition_model_v1(
+    "dlib_face_recognition_resnet_model_v1.dat"
+)
+
+
+def align_face(image, face):
+    shape = shape_predictor(image, face)
+    face_chip = dlib.get_face_chip(image, shape)
+    return face_chip
+
+
+def extract_face_encoding(face_chip):
+    face_descriptor = face_rec_model.compute_face_descriptor(face_chip)
+    return np.array(face_descriptor)
 
 
 @app.route("/predict", methods=["POST"])
@@ -18,79 +38,34 @@ def predict():
 
     image_file = request.files["image"]
 
-    # Log the received file information
-    print(
-        f"Received file: {image_file.filename}, Content type: {image_file.content_type}"
-    )
-
     if image_file.filename == "":
         return jsonify({"error": "No image selected"}), 400
 
     if image_file:
         try:
-            # Load the image file
-            image = face_recognition.load_image_file(image_file)
-            print("Image loaded successfully.")
+            # Read the image file
+            image_array = np.frombuffer(image_file.read(), np.uint8)
+            image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         except Exception as e:
             return jsonify({"error": f"Failed to load image: {str(e)}"}), 400
 
-        # Log image properties
-        print(f"Image shape: {image.shape}, dtype: {image.dtype}")
+        # Detect faces using dlib
+        faces = face_detector(
+            image_rgb, 1
+        )  # 1 is the number of times to upsample the image
 
-        # Convert the image to RGB (face_recognition expects RGB format)
-        face_image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        # Resize the image to a smaller size (optional)
-        original_height, original_width, _ = face_image_rgb.shape
-        if max(original_height, original_width) > 1024:
-            scale_factor = 1024 / max(original_height, original_width)
-            new_height = int(original_height * scale_factor)
-            new_width = int(original_width * scale_factor)
-            face_image_rgb = cv2.resize(face_image_rgb, (new_width, new_height))
-            print(f"Resized image to ({new_width}, {new_height})")
-
-        # Detect face locations using the 'cnn' model with increased upsampling
-        face_locations = face_recognition.face_locations(
-            face_image_rgb, model="cnn", number_of_times_to_upsample=2
-        )
-        print(f"Detected {len(face_locations)} face locations with CNN model.")
-
-        # If no faces are detected, try the hog model
-        if not face_locations:
-            face_locations = face_recognition.face_locations(
-                face_image_rgb, model="hog", number_of_times_to_upsample=2
-            )
-            print(f"Detected {len(face_locations)} face locations with HOG model.")
-
-        # Check if any face locations were found
-        if not face_locations:
-            print("No faces detected.")
+        if not faces:
             return jsonify({"prediction": "No face detected"}), 200
-
-        # Adjust bounding boxes back to the original image size
-        adjusted_face_locations = []
-        for top, right, bottom, left in face_locations:
-            adjusted_top = int(top / scale_factor)
-            adjusted_right = int(right / scale_factor)
-            adjusted_bottom = int(bottom / scale_factor)
-            adjusted_left = int(left / scale_factor)
-            adjusted_face_locations.append(
-                (adjusted_top, adjusted_right, adjusted_bottom, adjusted_left)
-            )
-
-        # Get face encodings
-        face_encodings = face_recognition.face_encodings(face_image_rgb, face_locations)
-        print(f"Detected {len(face_encodings)} face encodings.")
 
         results = []
 
-        if len(face_encodings) == 0:
-            print("No face encodings found.")
-            return jsonify({"prediction": "No face detected"}), 200
+        for face in faces:
+            # Align and extract face encoding
+            face_chip = align_face(image_rgb, face)
+            face_encoding = extract_face_encoding(face_chip)
 
-        for face_encoding, (top, right, bottom, left) in zip(
-            face_encodings, adjusted_face_locations
-        ):
+            # Predict
             probabilities = clf.predict_proba([face_encoding])[0]
             max_prob = np.max(probabilities)
 
@@ -101,6 +76,12 @@ def predict():
                 predicted_label = le.inverse_transform([predicted_label_index])[0]
 
             # Get bounding box coordinates
+            left, top, right, bottom = (
+                face.left(),
+                face.top(),
+                face.right(),
+                face.bottom(),
+            )
             results.append(
                 {
                     "label": predicted_label,
@@ -110,7 +91,7 @@ def predict():
                         "bottom": bottom,
                         "left": left,
                     },
-                    "probability": max_prob,
+                    "probability": float(max_prob),
                 }
             )
 
